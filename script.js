@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const sentenceItem = document.createElement('div');
             sentenceItem.classList.add('sentence-item');
             sentenceItem.innerHTML = `
-                <span>${sentence}</span>
+                <pre>${sentence}</pre>
                 <button onclick="editSentence(${index})">수정</button>
                 <button onclick="deleteSentence(${index})">삭제</button>
             `;
@@ -63,5 +63,3 @@ document.addEventListener('DOMContentLoaded', () => {
     // 초기 문장 목록 표시
     updateSentenceList();
 });
-
-
