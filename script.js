@@ -2,24 +2,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const sentenceList = document.getElementById('sentence-list');
     const sentenceForm = document.getElementById('sentence-form');
     const newSentenceInput = document.getElementById('new-sentence');
+    const db = firebase.firestore();
 
-    // 문장을 저장할 배열
-    let sentences = JSON.parse(localStorage.getItem('sentences')) || [];
-
-    // 문장 목록을 갱신하는 함수
-    function updateSentenceList() {
-        sentenceList.innerHTML = '';
-        sentences.forEach((sentence, index) => {
-            const sentenceItem = document.createElement('div');
-            sentenceItem.classList.add('sentence-item');
-            sentenceItem.innerHTML = `
-                <pre>${sentence}</pre>
-                <button onclick="editSentence(${index})">수정</button>
-                <button onclick="deleteSentence(${index})">삭제</button>
-            `;
-            sentenceItem.addEventListener('click', () => copyToClipboard(sentence));
-            sentenceList.appendChild(sentenceItem);
+    // Firestore에서 문장 불러오기
+    function loadSentences() {
+        db.collection("sentences").get().then((querySnapshot) => {
+            sentenceList.innerHTML = '';
+            querySnapshot.forEach((doc) => {
+                const sentence = doc.data().text;
+                displaySentence(sentence, doc.id);
+            });
         });
+    }
+
+    // 문장을 화면에 표시하는 함수
+    function displaySentence(sentence, id) {
+        const sentenceItem = document.createElement('div');
+        sentenceItem.classList.add('sentence-item');
+        sentenceItem.innerHTML = `
+            <pre>${sentence}</pre>
+            <button onclick="editSentence('${id}', '${sentence}')">수정</button>
+            <button onclick="deleteSentence('${id}')">삭제</button>
+        `;
+        sentenceItem.addEventListener('click', () => copyToClipboard(sentence));
+        sentenceList.appendChild(sentenceItem);
     }
 
     // 클립보드에 복사하는 함수
@@ -35,31 +41,31 @@ document.addEventListener('DOMContentLoaded', () => {
     sentenceForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const newSentence = newSentenceInput.value;
-        sentences.push(newSentence);
-        localStorage.setItem('sentences', JSON.stringify(sentences));
-        newSentenceInput.value = '';
-        updateSentenceList();
+        db.collection("sentences").add({ text: newSentence }).then(() => {
+            newSentenceInput.value = '';
+            loadSentences();
+        });
     });
 
     // 문장 수정 함수
-    window.editSentence = (index) => {
-        const newSentence = prompt('문장을 수정하세요:', sentences[index]);
+    window.editSentence = (id, currentText) => {
+        const newSentence = prompt('문장을 수정하세요:', currentText);
         if (newSentence !== null) {
-            sentences[index] = newSentence;
-            localStorage.setItem('sentences', JSON.stringify(sentences));
-            updateSentenceList();
+            db.collection("sentences").doc(id).set({ text: newSentence }).then(() => {
+                loadSentences();
+            });
         }
     };
 
     // 문장 삭제 함수
-    window.deleteSentence = (index) => {
+    window.deleteSentence = (id) => {
         if (confirm('정말 삭제하시겠습니까?')) {
-            sentences.splice(index, 1);
-            localStorage.setItem('sentences', JSON.stringify(sentences));
-            updateSentenceList();
+            db.collection("sentences").doc(id).delete().then(() => {
+                loadSentences();
+            });
         }
     };
 
     // 초기 문장 목록 표시
-    updateSentenceList();
+    loadSentences();
 });
